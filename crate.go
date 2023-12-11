@@ -187,7 +187,7 @@ func encodeMap(buf *bytes.Buffer, obj reflect.Value) error {
 		}
 		buf.WriteString(fmt.Sprintf("\"%s\":", k))
 		fm := "%v"
-		v := obj.MapIndex(k).Elem()
+		v := obj.MapIndex(k)
 		vk := v.Kind()
 		if vk == reflect.Interface {
 			v = v.Elem()
@@ -198,6 +198,14 @@ func encodeMap(buf *bytes.Buffer, obj reflect.Value) error {
 			//Prevents rounding errors seen with floats like 0.01*41 which is 0.41000000000000003 ...
 			//See https://floating-point-gui.de/
 			buf.WriteString(fmt.Sprintf("%0.6f", v.Float()))
+			continue
+		case reflect.Int64, reflect.Int32, reflect.Int, reflect.Int8:
+			//Prevents rounding errors seen with floats like 0.01*41 which is 0.41000000000000003 ...
+			//See https://floating-point-gui.de/
+			buf.WriteString(fmt.Sprintf("%d", v.Int()))
+			continue
+		case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+			buf.WriteString(fmt.Sprintf("%d", v.Uint()))
 			continue
 		case reflect.Map:
 			t := reflect.TypeOf(v)
