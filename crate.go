@@ -18,25 +18,25 @@ import (
 
 // Crate conn structure
 type CrateDriver struct {
-	Url string // Crate http endpoint url
+	Url        string // Crate http endpoint url
 	username   string
 	password   string
 	httpClient *http.Client
 }
 
-//GeoPoint represents Crate GeoPoint column
+// GeoPoint represents Crate GeoPoint column
 type GeoPoint struct {
 	Lat float64
 	Lon float64
 }
 
-//CrateArray represents an Array column type
+// CrateArray represents an Array column type
 type CrateArray []interface{}
 
-//crateMap used to store any map and force our own MarshalJSON method to be called
+// crateMap used to store any map and force our own MarshalJSON method to be called
 type crateMap map[string]interface{}
 
-//Scan : Implements Scanner interface to populate a GeoPoint when the result is an array of 2 floats
+// Scan : Implements Scanner interface to populate a GeoPoint when the result is an array of 2 floats
 func (gp *GeoPoint) Scan(src interface{}) error {
 	if b, ok := src.([]interface{}); ok && len(b) == 2 {
 		var err error
@@ -50,7 +50,7 @@ func (gp *GeoPoint) Scan(src interface{}) error {
 	return fmt.Errorf("failed to convert %v to GeoPoint", src)
 }
 
-//Scan : Implements Scanner interface to populate a CrateArray from the incoming data
+// Scan : Implements Scanner interface to populate a CrateArray from the incoming data
 func (arr *CrateArray) Scan(src interface{}) error {
 	if srcArr, ok := src.([]interface{}); ok {
 		*arr = make([]interface{}, len(srcArr))
@@ -104,8 +104,8 @@ type endpointQuery struct {
 	Args []driver.Value `json:"args,omitempty"`
 }
 
-//encodeArray will encode the array represented by obj and store the result in buf
-//It returns an error if obj contains a map with keys other than strings
+// encodeArray will encode the array represented by obj and store the result in buf
+// It returns an error if obj contains a map with keys other than strings
 func encodeArray(buf *bytes.Buffer, obj reflect.Value) error {
 	m := obj.Len()
 	if m == 0 {
@@ -166,12 +166,12 @@ func encodeArray(buf *bytes.Buffer, obj reflect.Value) error {
 	return nil
 }
 
-//encodeMap will encode the map stored in obj in json and store it as a string in the buffer buf
-//This is used because one cannot rely on the json encoder because it will format any float with decimal part of 0 as an int
-//If the first value to be stored in a new object's key is an int then all further values will be stored as int
-//and one will loose the decimal part of each value... Our encoder will ensure that a float with a 0 decimal part
-//is encoded as X.0 and not X
-//Note it will not encode maps with keys other than strings
+// encodeMap will encode the map stored in obj in json and store it as a string in the buffer buf
+// This is used because one cannot rely on the json encoder because it will format any float with decimal part of 0 as an int
+// If the first value to be stored in a new object's key is an int then all further values will be stored as int
+// and one will loose the decimal part of each value... Our encoder will ensure that a float with a 0 decimal part
+// is encoded as X.0 and not X
+// Note it will not encode maps with keys other than strings
 func encodeMap(buf *bytes.Buffer, obj reflect.Value) error {
 	if obj.Len() == 0 {
 		buf.WriteString("{}")
@@ -234,7 +234,7 @@ func encodeMap(buf *bytes.Buffer, obj reflect.Value) error {
 	return nil
 }
 
-//MarshalJSON custom JSON marshal function to properly marshall maps containing floats with decimal part equals to 0
+// MarshalJSON custom JSON marshal function to properly marshall maps containing floats with decimal part equals to 0
 func (v crateMap) MarshalJSON() ([]byte, error) {
 	res := bytes.Buffer{}
 	if err := encodeMap(&res, reflect.ValueOf(v)); err != nil {
@@ -244,7 +244,7 @@ func (v crateMap) MarshalJSON() ([]byte, error) {
 	return res.Bytes(), nil
 }
 
-//MarshalJSON custom JSON marshal function to properly handle arrays of floats with decimal part equals to 0
+// MarshalJSON custom JSON marshal function to properly handle arrays of floats with decimal part equals to 0
 func (v CrateArray) MarshalJSON() ([]byte, error) {
 	res := bytes.Buffer{}
 	if err := encodeArray(&res, reflect.ValueOf(v)); err != nil {
@@ -254,7 +254,7 @@ func (v CrateArray) MarshalJSON() ([]byte, error) {
 	return res.Bytes(), nil
 }
 
-//CheckNamedValue Convert map, CrateArray, time & GeoPoint arguments to DB format.
+// CheckNamedValue Convert map, CrateArray, time & GeoPoint arguments to DB format.
 func (c *CrateDriver) CheckNamedValue(v *driver.NamedValue) error {
 	if obj, ok := v.Value.(map[string]interface{}); ok {
 		v.Value = crateMap(obj)
@@ -322,7 +322,7 @@ func (c *CrateDriver) query(stmt string, args []driver.Value) (*endpointResponse
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 || resp.StatusCode >= 400 && resp.StatusCode <= 499 ||  resp.StatusCode >= 500 && resp.StatusCode <= 599 {
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 || resp.StatusCode >= 400 && resp.StatusCode <= 499 || resp.StatusCode >= 500 && resp.StatusCode <= 599 {
 		// Parse response
 		res := &endpointResponse{}
 		d := json.NewDecoder(resp.Body)
@@ -338,7 +338,7 @@ func (c *CrateDriver) query(stmt string, args []driver.Value) (*endpointResponse
 
 		// Check for db errors
 		if res.Error.Code != 0 {
-			err = &CrateErr{
+			err = CrateErr{
 				Code:    res.Error.Code,
 				Message: res.Error.Message,
 			}
